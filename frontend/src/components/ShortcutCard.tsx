@@ -5,6 +5,9 @@ interface ShortcutCardProps {
   title: string;
   description: string;
   onClick: () => void;
+  iconClassName?: string;
+  iconBackgroundClassName?: string;
+
 }
 
 export const ShortcutCard: React.FC<ShortcutCardProps> = ({
@@ -12,6 +15,9 @@ export const ShortcutCard: React.FC<ShortcutCardProps> = ({
   title,
   description,
   onClick,
+  iconClassName = 'text-[#b95878] dark:text-[#f2a5bf]',
+  iconBackgroundClassName = 'bg-[#f5d6df] dark:bg-[#523342]',
+
 }) => {
   return (
     <button
@@ -19,7 +25,7 @@ export const ShortcutCard: React.FC<ShortcutCardProps> = ({
       onClick={onClick}
       className="group flex w-full cursor-pointer flex-col items-start rounded-2xl border border-[#ead8c9] bg-[#fffaf6] p-5 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[#e7a2b7] hover:bg-[#fffdfb] dark:border-[#665365] dark:bg-[#30262e] dark:hover:border-[#a9778d] dark:hover:bg-[#3a2d38]"
     >
-      <div className="mb-3 rounded-xl bg-[#f5d6df] p-2 text-[#b95878] transition-transform duration-200 group-hover:scale-110 dark:bg-[#523342] dark:text-[#f2a5bf]">
+      <div className={`mb-3 rounded-xl p-2 transition-transform duration-200 group-hover:scale-110 ${iconBackgroundClassName} ${iconClassName}`}>
         {icon}
       </div>
       <h3 className="mb-1 text-base font-semibold text-[#603f2d] dark:text-[#f6e9df]">{title}</h3>

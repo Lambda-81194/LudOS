@@ -1,8 +1,14 @@
 import React from 'react';
 import { SparklesIcon } from '@heroicons/react/24/solid';
+import PlusIcon from '@heroicons/react/24/outline/PlusIcon';
 import { ThemeToggle } from './ThemeToggle';
 
-export const Header: React.FC = () => {
+type HeaderProps = {
+  onNewChat: () => void;
+  disabled?: boolean;
+};
+
+export const Header: React.FC<HeaderProps> = ({ onNewChat, disabled = false }) => {
   return (
     <header className="relative isolate sticky top-0 z-50 w-full overflow-hidden border-b border-[#ebdcd0] bg-[#fbf6f0]/95 px-4 pb-4 pt-4 font-sans text-[#705e52] backdrop-blur-md transition-colors duration-300 sm:px-6 sm:pb-5 sm:pt-5 lg:px-8 lg:pb-6 lg:pt-6 dark:border-[#4a3e47] dark:bg-[#241d20]/95 dark:text-[#eadbd2]">
       <div
@@ -49,9 +55,21 @@ export const Header: React.FC = () => {
             LudOS
           </h1>
         </div>
+        {/* Right Side: New Chat and Theme Toggle */}
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onNewChat}
+            disabled={disabled}
+            aria-label="Start a new chat"
+            title="New chat"
+            className="flex size-8 items-center justify-center rounded-full border border-[#ead8c9] text-[#8f6e61] transition-colors hover:border-[#e08ba2] hover:bg-[#f5e9df] hover:text-[#b95878] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#665365] dark:text-[#c9ada1] dark:hover:border-[#e08ba2] dark:hover:bg-[#4c3d4e] dark:hover:text-[#f2a5bf]"
+          >
+            <PlusIcon className="size-4" aria-hidden="true" />
+          </button>
+          <ThemeToggle />
+        </div>
 
-        {/* Right Side: Theme Toggle Switch */}
-        <ThemeToggle />
       </div>
 
       {/* Subtitle / Description Section */}
@@ -59,8 +77,9 @@ export const Header: React.FC = () => {
         <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-[#e5aa45] text-[#553c1f] sm:mt-0 dark:bg-[#e5aa45]">
           <SparklesIcon className="size-4" aria-hidden="true" />
         </div>
-        <p className="max-w-2xl text-sm font-normal leading-relaxed text-[#8f6e61] sm:text-base dark:text-[#e8c8dc]">
-          An assistant that turns a mood, a memory of a game you loved, or a spare twenty minutes into your next thing to play.
+        <p className="min-w-0 flex-1 text-sm font-normal leading-relaxed text-[#8f6e61] sm:text-base dark:text-[#e8c8dc]">
+          An assistant that turns a mood, a memory of a game you loved, or the time you're willing to invest into your next thing to play.
+
         </p>
       </div>
     </header>

@@ -8,9 +8,15 @@ type ChatInputProps = {
 	onSend?: (message: string) => void
 	value?: string
 	onChange?: (message: string) => void
+	disabled?: boolean
 }
 
-export default function ChatInput({ onSend, value, onChange }: ChatInputProps) {
+export default function ChatInput({
+	onSend,
+	value,
+	onChange,
+	disabled = false,
+}: ChatInputProps) {
 	const [internalMessage, setInternalMessage] = useState('')
 	const message = value ?? internalMessage
 
@@ -41,6 +47,8 @@ export default function ChatInput({ onSend, value, onChange }: ChatInputProps) {
 				<textarea
 					id="chat-message"
 					value={message}
+					disabled={disabled}
+
 					maxLength={MAX_LENGTH}
 					onChange={(event) => updateMessage(event.target.value)}
 					placeholder='e.g. “something cozy for short bursts”'
@@ -49,7 +57,9 @@ export default function ChatInput({ onSend, value, onChange }: ChatInputProps) {
 				/>
 				<button
 					type="submit"
-					disabled={!message.trim()}
+
+					disabled={disabled || !message.trim()}
+
 					aria-label="Send message"
 					title="Send message"
 					className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f19ab4] text-[#603447] transition-colors hover:bg-[#ed88a7] sm:size-12 disabled:cursor-not-allowed disabled:bg-[#f3c4d1] disabled:text-[#a88491]"

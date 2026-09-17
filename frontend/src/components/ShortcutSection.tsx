@@ -18,12 +18,18 @@ export const ShortcutSection: React.FC<ShortcutSectionProps> = ({ onSelectShortc
           icon={<SparklesIcon className="size-5" />}
           title="Surprise me"
           description="Skip the questions, get one great pick right now."
+          iconClassName="text-[#b45309] dark:text-[#fbbf24]"
+          iconBackgroundClassName="bg-[#fef0c7] dark:bg-[#5a3d18]"
+
+
           onClick={() => onSelectShortcut('Surprise me with a great game')}
         />
         <ShortcutCard
           icon={<ArrowPathIcon className="size-5" />}
           title="More like a game I loved"
           description="Name a favorite and get its closest cousins."
+          iconClassName="text-[#087ea4] dark:text-[#67e8f9]"
+          iconBackgroundClassName="bg-[#d5f3fa] dark:bg-[#164553]"
           onClick={() => onSelectShortcut('Find games similar to a favorite')}
         />
       </div>
