@@ -7,6 +7,7 @@ interface ShortcutCardProps {
   onClick: () => void;
   iconClassName?: string;
   iconBackgroundClassName?: string;
+
 }
 
 export const ShortcutCard: React.FC<ShortcutCardProps> = ({
@@ -16,6 +17,7 @@ export const ShortcutCard: React.FC<ShortcutCardProps> = ({
   onClick,
   iconClassName = 'text-[#b95878] dark:text-[#f2a5bf]',
   iconBackgroundClassName = 'bg-[#f5d6df] dark:bg-[#523342]',
+
 }) => {
   return (
     <button

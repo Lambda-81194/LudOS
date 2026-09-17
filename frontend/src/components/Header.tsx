@@ -55,7 +55,6 @@ export const Header: React.FC<HeaderProps> = ({ onNewChat, disabled = false }) =
             LudOS
           </h1>
         </div>
-
         {/* Right Side: New Chat and Theme Toggle */}
         <div className="flex shrink-0 items-center gap-2">
           <button
@@ -70,6 +69,7 @@ export const Header: React.FC<HeaderProps> = ({ onNewChat, disabled = false }) =
           </button>
           <ThemeToggle />
         </div>
+
       </div>
 
       {/* Subtitle / Description Section */}
@@ -79,6 +79,7 @@ export const Header: React.FC<HeaderProps> = ({ onNewChat, disabled = false }) =
         </div>
         <p className="min-w-0 flex-1 text-sm font-normal leading-relaxed text-[#8f6e61] sm:text-base dark:text-[#e8c8dc]">
           An assistant that turns a mood, a memory of a game you loved, or the time you're willing to invest into your next thing to play.
+
         </p>
       </div>
     </header>

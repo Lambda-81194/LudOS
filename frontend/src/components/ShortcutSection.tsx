@@ -20,6 +20,8 @@ export const ShortcutSection: React.FC<ShortcutSectionProps> = ({ onSelectShortc
           description="Skip the questions, get one great pick right now."
           iconClassName="text-[#b45309] dark:text-[#fbbf24]"
           iconBackgroundClassName="bg-[#fef0c7] dark:bg-[#5a3d18]"
+
+
           onClick={() => onSelectShortcut('Surprise me with a great game')}
         />
         <ShortcutCard
