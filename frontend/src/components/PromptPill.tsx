@@ -1,23 +1,17 @@
 interface PromptPillProps {
   label: string;
-  isSelected?: boolean;
   onClick: (label: string) => void;
 }
 
 export const PromptPill: React.FC<PromptPillProps> = ({
   label,
-  isSelected = false,
   onClick,
 }) => {
   return (
     <button
       type="button"
       onClick={() => onClick(label)}
-      className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
-        isSelected
-          ? 'bg-[#e08ba2] text-white border-[#e08ba2] shadow-sm'
-          : 'bg-white text-[#705e52] border-[#ebdcd0] hover:border-[#d4c1b2] dark:bg-[#2d222a] dark:text-[#eadbd2] dark:border-[#4a3e47] dark:hover:border-[#7a5d68]'
-      }`}
+      className="rounded-full border border-[#ebdcd0] bg-white px-4 py-2 text-sm font-medium text-[#705e52] transition-all duration-200 hover:border-[#e08ba2] hover:bg-[#e08ba2] hover:text-white sm:px-5 dark:border-[#4a3e47] dark:bg-[#2d222a] dark:text-[#eadbd2] dark:hover:border-[#e08ba2] dark:hover:bg-[#e08ba2] dark:hover:text-white"
     >
       {label}
     </button>
