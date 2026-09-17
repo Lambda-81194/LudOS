@@ -1,16 +1,21 @@
 import React from 'react';
+import { SparklesIcon } from '@heroicons/react/24/solid';
 import { ThemeToggle } from './ThemeToggle';
 
 export const Header: React.FC = () => {
   return (
-    <header className="w-full border-b border-[#ebdcd0] bg-[#fbf6f0] px-8 pb-6 pt-6 font-sans text-[#705e52] transition-colors duration-300 dark:border-[#4a3e47] dark:bg-[#241d20] dark:text-[#eadbd2]">
+    <header className="relative isolate sticky top-0 z-50 w-full overflow-hidden border-b border-[#ebdcd0] bg-[#fbf6f0]/95 px-4 pb-4 pt-4 font-sans text-[#705e52] backdrop-blur-md transition-colors duration-300 sm:px-6 sm:pb-5 sm:pt-5 lg:px-8 lg:pb-6 lg:pt-6 dark:border-[#4a3e47] dark:bg-[#241d20]/95 dark:text-[#eadbd2]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-40 bg-[radial-gradient(ellipse_at_12%_0%,rgba(238,154,179,0.2),transparent_38%),radial-gradient(ellipse_at_80%_0%,rgba(126,197,211,0.18),transparent_42%)] dark:bg-[radial-gradient(ellipse_at_12%_0%,rgba(238,154,179,0.22),transparent_38%),radial-gradient(ellipse_at_80%_0%,rgba(126,197,211,0.22),transparent_42%)]"
+      />
       {/* Top Bar Navigation */}
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4">
         
         {/* Left Side: Logo & Brand Name */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {/* Logo Icon Container */}
-          <div className="w-9 h-9 rounded-lg bg-white border border-[#e8ded5] shadow-sm flex items-center justify-center p-1.5">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#e8ded5] bg-white p-1.5 shadow-sm">
             {/* Diamond SVG Icon */}
             <svg
               viewBox="0 0 24 24"
@@ -40,40 +45,21 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-serif font-semibold tracking-tight text-[#3b2e2b] dark:text-[#f6e9df]">
-            Loadout
+          <h1 className="truncate text-xl font-serif font-semibold tracking-tight text-[#3b2e2b] sm:text-2xl dark:text-[#f6e9df]">
+            LudOS
           </h1>
         </div>
-
-        {/* Center: Navigation Links */}
-        <nav className="flex items-center space-x-8 text-sm font-normal text-[#938073] dark:text-[#c9ada1]">
-          <a
-            href="#explore"
-            className="transition-colors duration-200 hover:text-[#3b2e2b] dark:hover:text-[#f6e9df]"
-          >
-            Explore
-          </a>
-          <a
-            href="#saved"
-            className="transition-colors duration-200 hover:text-[#3b2e2b] dark:hover:text-[#f6e9df]"
-          >
-            Saved
-          </a>
-          <a
-            href="#how-it-works"
-            className="transition-colors duration-200 hover:text-[#3b2e2b] dark:hover:text-[#f6e9df]"
-          >
-            How it works
-          </a>
-        </nav>
 
         {/* Right Side: Theme Toggle Switch */}
         <ThemeToggle />
       </div>
 
       {/* Subtitle / Description Section */}
-      <div className="max-w-7xl mx-auto mt-6">
-        <p className="max-w-xl text-sm font-normal leading-relaxed text-[#a89587] dark:text-[#c9ada1]">
+      <div className="relative z-10 mx-auto mt-4 flex max-w-7xl items-start gap-3 rounded-2xl border border-[#ead8c9] bg-[#f5e9df]/90 px-4 py-3 transition-colors duration-300 sm:mt-6 sm:items-center sm:gap-4 sm:px-5 sm:py-4 dark:border-[#665365] dark:bg-[#4c3d4e]/90">
+        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-[#e5aa45] text-[#553c1f] sm:mt-0 dark:bg-[#e5aa45]">
+          <SparklesIcon className="size-4" aria-hidden="true" />
+        </div>
+        <p className="max-w-2xl text-sm font-normal leading-relaxed text-[#8f6e61] sm:text-base dark:text-[#e8c8dc]">
           An assistant that turns a mood, a memory of a game you loved, or a spare twenty minutes into your next thing to play.
         </p>
       </div>
