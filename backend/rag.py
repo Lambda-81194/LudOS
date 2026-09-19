@@ -6,16 +6,23 @@ from sentence_transformers import SentenceTransformer
 
 
 class RAGEngine:
-
     def __init__(self, data_dir="data"):
-        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+        self.data_dir = data_dir
+        self.embedder = None
         self.chunks = []
         self.embeddings = None
-        self._load_and_process_data(data_dir)
+        self._initialized = False
 
-    def _load_and_process_data(self, data_dir):
-        games_csv_path = os.path.join(data_dir, "games.csv")
-        json_path = os.path.join(data_dir, "games_metadata.json")
+    def _initialize(self):
+        """Loads model and processes data only on the first query request to save RAM."""
+        if self._initialized:
+            return
+
+        # Load embedding model lazily inside runtime memory to bypass startup OOM limits
+        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+        
+        games_csv_path = os.path.join(self.data_dir, "games.csv")
+        json_path = os.path.join(self.data_dir, "games_metadata.json")
 
         df_games = (
             pd.read_csv(games_csv_path)
@@ -57,11 +64,17 @@ class RAGEngine:
 
         if self.chunks:
             self.embeddings = self.embedder.encode(self.chunks)
+            
+        self._initialized = True
 
     def retrieve(self, query, top_k=3):
+        # Triggers loading only when the search endpoint is called at runtime
+        self._initialize()
+        
         if not self.chunks or self.embeddings is None:
             return []
 
+        assert self.embedder is not None
         query_vec = self.embedder.encode([query])[0]
         similarities = np.dot(self.embeddings, query_vec) / (
             np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(query_vec)
