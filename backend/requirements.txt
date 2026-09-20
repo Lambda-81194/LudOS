@@ -1,8 +1,8 @@
 fastapi
 uvicorn
+python-dotenv
 groq
-sentence-transformers
-faiss-cpu
+pydantic
 numpy
 pandas
-python-dotenv
+scikit-learn
