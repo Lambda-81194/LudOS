@@ -1,7 +1,10 @@
 
 import json
+import difflib
 import logging
 import os
+import random
+import re
 import threading
 
 import numpy as np
@@ -83,11 +86,27 @@ class RAGEngine:
         self.vectorizer = None
         self.matrix = None
         self._initialized = False
+        self._chunks_loaded = False
+        self._chunk_metadata = []
+        self._title_to_index = {}
         self._lock = threading.Lock()
 
     @property
     def chunks_path(self):
         return os.path.join(self.data_dir, "chunks.json")
+
+    def _chunks_are_current(self):
+        if not os.path.exists(self.chunks_path):
+            return False
+        source_paths = (
+            os.path.join(self.data_dir, "games.csv"),
+            os.path.join(self.data_dir, "games_metadata.json"),
+        )
+        chunks_mtime = os.path.getmtime(self.chunks_path)
+        return all(
+            not os.path.exists(path) or os.path.getmtime(path) <= chunks_mtime
+            for path in source_paths
+        )
 
     # ------------------------------------------------------------ build step
     def build_chunks(self):
@@ -156,6 +175,34 @@ class RAGEngine:
         return len(chunks)
 
     # ------------------------------------------------------------- runtime
+    def _ensure_chunks(self):
+        if self._chunks_loaded:
+            return
+        with self._lock:
+            if self._chunks_loaded:
+                return
+
+            if self._chunks_are_current():
+                with open(self.chunks_path, "r", encoding="utf-8") as f:
+                    self.chunks = json.load(f)
+                log.info("Loaded %d prebuilt chunks", len(self.chunks))
+            else:
+                log.info("RAG source data changed; rebuilding chunks")
+                self.chunks = self.build_chunks()
+
+            self._chunk_metadata = []
+            self._title_to_index = {}
+            for index, chunk in enumerate(self.chunks):
+                title_match = re.search(r"^Game Title:\s*(.*)$", chunk, re.MULTILINE)
+                rating_match = re.search(r"\((\d+(?:\.\d+)?)%\s*positive\)", chunk)
+                title = title_match.group(1).strip() if title_match else "Unknown Title"
+                positive_percent = float(rating_match.group(1)) if rating_match else -1.0
+                self._chunk_metadata.append((title, positive_percent, index))
+                normalized_title = self._normalize_title(title)
+                if normalized_title and normalized_title not in self._title_to_index:
+                    self._title_to_index[normalized_title] = index
+            self._chunks_loaded = True
+
     def _initialize(self):
         if self._initialized:
             return
@@ -163,13 +210,10 @@ class RAGEngine:
             if self._initialized:
                 return
 
-            if os.path.exists(self.chunks_path):
-                with open(self.chunks_path, "r", encoding="utf-8") as f:
-                    self.chunks = json.load(f)
-                log.info("Loaded %d prebuilt chunks", len(self.chunks))
-            else:
-                log.warning("chunks.json not found; building from CSV at runtime")
-                self.chunks = self.build_chunks()
+        self._ensure_chunks()
+        with self._lock:
+            if self._initialized:
+                return
 
             if self.chunks:
                 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -183,16 +227,141 @@ class RAGEngine:
                 self.matrix = self.vectorizer.fit_transform(self.chunks)
             self._initialized = True
 
-    def retrieve(self, query, top_k=3):
+    @staticmethod
+    def _normalize_title(text):
+        normalized = text.casefold().replace("™", "").replace("®", "")
+        normalized = re.sub(r"[^\w\s]", " ", normalized)
+        return re.sub(r"\s+", " ", normalized).strip()
+
+    def _score_query(self, query, top_k):
         self._initialize()
         if not self.chunks or self.matrix is None or self.vectorizer is None:
             return []
 
         q = self.vectorizer.transform([query])
-        # TF-IDF rows are L2-normalised, so a dot product is cosine similarity.
         scores = np.asarray(self.matrix @ q.toarray().ravel()).ravel()  # type: ignore[attr-defined]
-        top = np.argsort(scores)[::-1][:top_k]
-        return [self.chunks[i] for i in top if scores[i] > 0]
+        return sorted(
+            ((float(score), index) for index, score in enumerate(scores) if score > 0),
+            reverse=True,
+        )[:top_k]
+
+    def find_game(self, text):
+        self._ensure_chunks()
+        if not self.chunks:
+            return None
+
+        normalized_text = self._normalize_title(text)
+        exact_index = self._title_to_index.get(normalized_text)
+        if exact_index is not None:
+            title = self._chunk_metadata[exact_index][0]
+            return title, self.chunks[exact_index]
+
+        for normalized_title, index in sorted(
+            self._title_to_index.items(), key=lambda item: len(item[0]), reverse=True
+        ):
+            if len(normalized_title) < 4:
+                continue
+            if re.search(rf"(?<!\w){re.escape(normalized_title)}(?!\w)", normalized_text):
+                title = self._chunk_metadata[index][0]
+                return title, self.chunks[index]
+
+        matches = difflib.get_close_matches(
+            normalized_text, list(self._title_to_index), n=1, cutoff=0.8
+        )
+        if matches:
+            index = self._title_to_index[matches[0]]
+            title = self._chunk_metadata[index][0]
+            return title, self.chunks[index]
+        return None
+
+    def _similar_games(self, query, favorite_title, top_k):
+        scores = self._score_query(query, len(self.chunks))
+        favorite_normalized = self._normalize_title(favorite_title)
+        strict = []
+        relaxed = []
+        for score, index in scores:
+            title = self._chunk_metadata[index][0]
+            normalized_title = self._normalize_title(title)
+            if normalized_title == favorite_normalized:
+                continue
+            is_related_title = (
+                favorite_normalized in normalized_title
+                or normalized_title in favorite_normalized
+            )
+            target = relaxed if is_related_title else strict
+            target.append((score, index))
+
+        preferred = [
+            item for item in strict if self._chunk_metadata[item[1]][1] >= 70
+        ]
+        if len(preferred) < 3:
+            preferred.extend(
+                item for item in strict if item not in preferred
+            )
+        if len(preferred) < 3:
+            preferred.extend(
+                item for item in relaxed if self._chunk_metadata[item[1]][1] >= 70
+            )
+        if len(preferred) < 3:
+            preferred.extend(item for item in relaxed if item not in preferred)
+        return [self.chunks[index] for _, index in preferred[:top_k]]
+
+    def similar_games(self, chunk_text, favorite_title, top_k=6):
+        tags_match = re.search(r"^Tags/Genres:\s*(.*)$", chunk_text, re.MULTILINE)
+        description_match = re.search(r"^Description:\s*(.*)$", chunk_text, re.MULTILINE)
+        tags = tags_match.group(1).strip() if tags_match else ""
+        description = description_match.group(1).strip() if description_match else ""
+        if tags.casefold() in {"", "n/a", "na"}:
+            tags = ""
+        if description.casefold() in {"", "n/a", "na"}:
+            description = ""
+        query = f"{tags} {tags} {description}".strip()
+        if not query:
+            query = favorite_title
+        return self._similar_games(query, favorite_title, top_k)
+
+    def similar_from_keywords(self, keywords, favorite_title, top_k=6):
+        return self._similar_games(keywords, favorite_title, top_k)
+
+    def random_game(self, min_ratio=80, exclude=None):
+        self._ensure_chunks()
+        if not self.chunks:
+            return None
+
+        excluded_titles = {
+            title.strip().casefold() for title in (exclude or []) if title.strip()
+        }
+
+        thresholds = []
+        for threshold in (min_ratio, 70, 60):
+            if threshold not in thresholds:
+                thresholds.append(threshold)
+
+        for threshold in thresholds:
+            pool = [
+                item
+                for item in self._chunk_metadata
+                if item[1] >= threshold and item[0].strip().casefold() not in excluded_titles
+            ]
+            if pool:
+                title, _, index = random.choice(pool)
+                return title, self.chunks[index]
+
+        pool = [
+            item
+            for item in self._chunk_metadata
+            if item[0].strip().casefold() not in excluded_titles
+        ]
+        if not pool:
+            pool = self._chunk_metadata
+        if not pool:
+            return None
+
+        title, _, index = random.choice(pool)
+        return title, self.chunks[index]
+
+    def retrieve(self, query, top_k=3):
+        return [self.chunks[index] for _, index in self._score_query(query, top_k)]
 
 
 if __name__ == "__main__":

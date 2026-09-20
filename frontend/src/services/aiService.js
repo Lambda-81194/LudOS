@@ -29,19 +29,14 @@ function getErrorDetails(error) {
   };
 }
 
-/**
- * Sends the user prompt to the self-hosted RAG FastAPI backend on Render.
- * @param {string} userMessage - The latest query typed by the user.
- * @returns {Promise<{success: boolean, data?: object, error?: string, userMessage?: string}>}
- */
-export async function getGameRecommendation(userMessage) {
+async function postToBackend(path, payload) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/rag-query`, {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query: userMessage }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -56,9 +51,7 @@ export async function getGameRecommendation(userMessage) {
 
     return {
       success: true,
-      data: {
-        replyMessage: data.answer
-      }
+      data,
     };
 
   } catch (error) {
@@ -71,4 +64,48 @@ export async function getGameRecommendation(userMessage) {
       userMessage: details.userMessage
     };
   }
+}
+
+export async function getSimilarGames(favoriteGame) {
+  const result = await postToBackend('/api/similar', { game: favoriteGame });
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    data: {
+      replyMessage: result.data.answer,
+      matchedTitle: result.data.matched_title,
+      found: result.data.found,
+    },
+  };
+}
+
+/**
+ * Sends the user prompt to the self-hosted RAG FastAPI backend on Render.
+ * @param {string} userMessage - The latest query typed by the user.
+ * @returns {Promise<{success: boolean, data?: object, error?: string, userMessage?: string}>}
+ */
+export async function getGameRecommendation(userMessage) {
+  const result = await postToBackend('/api/rag-query', { query: userMessage });
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    data: {
+      replyMessage: result.data.answer,
+    },
+  };
+}
+
+export async function getSurpriseGame(excludeTitles = []) {
+  const result = await postToBackend('/api/surprise', { exclude: excludeTitles });
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    data: {
+      replyMessage: result.data.answer,
+      title: result.data.title,
+    },
+  };
 }

@@ -74,11 +74,42 @@ class QueryRequest(BaseModel):
     query: str
 
 
+class SurpriseRequest(BaseModel):
+    exclude: list[str] = []
+
+
+class SimilarRequest(BaseModel):
+    game: str
+
+
 SYSTEM_PROMPT = (
-    "You are an expert video game recommendation assistant. "
-    "Answer the user's question accurately and helpfully based strictly on the provided game dataset below. "
-    "Combine pricing, ratings, tags, and descriptions into a coherent recommendation. "
-    "If the dataset doesn't contain enough info to answer, state that clearly."
+    "You are a friendly video game recommendation assistant. "
+    "Use only games and facts present in the provided dataset. Never invent titles, tags, prices, ratings, features, or release details. "
+    "For greetings or casual messages, reply warmly in one short sentence and do not force a recommendation. "
+    "For recommendation requests, return exactly 1 best-match game using exactly this plain-text format:\n"
+    "1. GAME TITLE — PRICE | RATING\n"
+    "   Why: one concise sentence grounded in the dataset.\n\n"
+    "Keep the entire response under 60 words. "
+    "If the dataset has no strong match, say so briefly and ask one useful clarifying question."
+)
+
+SURPRISE_PROMPT = (
+    "You are a fun, enthusiastic video game recommender. "
+    "Write a 3-4 sentence pitch for the single game provided, using only the given title, price, rating, tags, and description. "
+    "Name the game in the first sentence and mention its price and rating. Never invent details."
+)
+
+KEYWORD_PROMPT = (
+    "Return 5-8 comma-separated genre or gameplay keywords for the named game. "
+    "Return exactly UNKNOWN if you do not recognize the game. Do not add any other text."
+)
+
+SIMILAR_PROMPT = (
+    "You recommend games similar to a player's favorite. The favorite game and candidate games are provided. "
+    "Choose the best 3 from ONLY the candidate games. For each, write one sentence explaining what it shares with the favorite "
+    "such as genre, tags, mood, or mechanics, and mention its price and rating. Never recommend the favorite itself. "
+    "Never invent games or details not present in the candidates. If fewer than 3 candidates are a good match, say so honestly. "
+    "If the favorite is not in the dataset, say that in the first sentence."
 )
 
 
@@ -107,6 +138,8 @@ def handle_query(request: QueryRequest):
             ],
             model=GROQ_MODEL,
             temperature=0.2,
+            max_completion_tokens=4096,
+            reasoning_effort="low",
         )
         return {"answer": completion.choices[0].message.content}
 
@@ -114,4 +147,97 @@ def handle_query(request: QueryRequest):
         raise
     except Exception as e:
         logging.exception("Error processing query")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+
+
+@app.post("/api/surprise")
+def handle_surprise(request: SurpriseRequest):
+    try:
+        game = get_rag_engine().random_game(exclude=request.exclude[-500:])
+        if game is None:
+            raise HTTPException(status_code=404, detail="No games available.")
+
+        title, game_text = game
+        completion = get_groq_client().chat.completions.create(
+            messages=[
+                {"role": "system", "content": SURPRISE_PROMPT},
+                {
+                    "role": "user",
+                    "content": f"Context:\n{game_text}\n\nPitch this game to a curious player.",
+                },
+            ],
+            model=GROQ_MODEL,
+            temperature=0.8,
+        )
+        return {"answer": completion.choices[0].message.content, "title": title}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception("Error processing surprise request")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+
+
+@app.post("/api/similar")
+def handle_similar(request: SimilarRequest):
+    game = request.game.strip()
+    if not game:
+        raise HTTPException(status_code=400, detail="Game name cannot be empty.")
+    if len(game) > 200:
+        raise HTTPException(status_code=400, detail="Game name cannot exceed 200 characters.")
+
+    try:
+        engine = get_rag_engine()
+        match = engine.find_game(game)
+        found = match is not None
+
+        if found:
+            matched_title, favorite_chunk = match
+            candidates = engine.similar_games(favorite_chunk, matched_title)
+            favorite_context = favorite_chunk
+        else:
+            keyword_completion = get_groq_client().chat.completions.create(
+                messages=[
+                    {"role": "system", "content": KEYWORD_PROMPT},
+                    {"role": "user", "content": f"Game: {game}"},
+                ],
+                model=GROQ_MODEL,
+                temperature=0,
+            )
+            keywords = (keyword_completion.choices[0].message.content or "").strip()
+            if keywords.upper() == "UNKNOWN":
+                return {
+                    "found": False,
+                    "matched_title": None,
+                    "answer": "I couldn't find that game. Check the spelling or try another title.",
+                }
+            matched_title = None
+            favorite_context = f"{game} (not in our dataset, matched by genre keywords: {keywords})"
+            candidates = engine.similar_from_keywords(keywords, game)
+
+        candidate_context = "\n---\n".join(candidates) if candidates else "No candidate games found."
+        completion = get_groq_client().chat.completions.create(
+            messages=[
+                {"role": "system", "content": SIMILAR_PROMPT},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Favorite game:\n{favorite_context}\n\n"
+                        f"Candidate games:\n{candidate_context}"
+                    ),
+                },
+            ],
+            model=GROQ_MODEL,
+            temperature=0.3,
+        )
+        return {
+            "found": found,
+            "matched_title": matched_title,
+            "answer": completion.choices[0].message.content,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception("Error processing similar request")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")

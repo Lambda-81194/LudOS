@@ -63,9 +63,10 @@ export const Header: React.FC<HeaderProps> = ({ onNewChat, disabled = false }) =
             disabled={disabled}
             aria-label="Start a new chat"
             title="New chat"
-            className="flex size-8 items-center justify-center rounded-full border border-[#ead8c9] text-[#8f6e61] transition-colors hover:border-[#e08ba2] hover:bg-[#f5e9df] hover:text-[#b95878] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#665365] dark:text-[#c9ada1] dark:hover:border-[#e08ba2] dark:hover:bg-[#4c3d4e] dark:hover:text-[#f2a5bf]"
+            className="flex items-center gap-1.5 rounded-full border border-[#ead8c9] px-3 py-2 text-xs font-semibold text-[#8f6e61] transition-colors hover:border-[#e08ba2] hover:bg-[#f5e9df] hover:text-[#b95878] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#665365] dark:text-[#c9ada1] dark:hover:border-[#e08ba2] dark:hover:bg-[#4c3d4e] dark:hover:text-[#f2a5bf]"
           >
             <PlusIcon className="size-4" aria-hidden="true" />
+            <span>New chat</span>
           </button>
           <ThemeToggle />
         </div>
