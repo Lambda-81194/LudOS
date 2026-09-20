@@ -43,6 +43,10 @@ if not os.environ.get("GROQ_API_KEY"):
 _groq_client = None
 _rag_engine = None
 
+# Groq retires/changes models over time. Override this on Render with the
+# GROQ_MODEL environment variable instead of editing code.
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+
 
 def get_groq_client():
     # Groq(api_key=None) raises at import time, which crashes the whole server
@@ -83,8 +87,6 @@ def health_check():
     return {"status": "ok", "message": "Backend server is running!"}
 
 
-# Plain `def` (not `async def`): retrieval and the Groq call are blocking, and
-# FastAPI runs sync endpoints in a threadpool so they don't freeze the server.
 @app.post("/api/rag-query")
 def handle_query(request: QueryRequest):
     query = request.query.strip()
@@ -103,7 +105,7 @@ def handle_query(request: QueryRequest):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": f"Context:\n{context_str}\n\nQuestion: {query}"},
             ],
-            model="llama-3.3-70b-versatile",
+            model=GROQ_MODEL,
             temperature=0.2,
         )
         return {"answer": completion.choices[0].message.content}
