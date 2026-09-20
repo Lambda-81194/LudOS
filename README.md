@@ -176,23 +176,3 @@ ALLOWED_ORIGINS=https://your-frontend-domain.example
 ```
 
 Set the frontend's `VITE_BACKEND_URL` to the public backend URL before running the frontend production build.
-
-## Troubleshooting
-
-### The browser reports a CORS or network error
-
-Make sure the backend is running and that the frontend is calling the correct URL. Test the backend directly:
-
-```bash
-curl http://127.0.0.1:8000/
-```
-
-If the frontend is deployed, set `VITE_BACKEND_URL` to the deployed backend URL and rebuild the frontend.
-
-### Recommendations are missing tags or descriptions
-
-Check that `backend/data/games_metadata.json` contains the relevant records. The RAG engine can still use CSV data when metadata is missing, but the recommendation will have less context.
-
-### The backend reports a missing Groq key
-
-Add `GROQ_API_KEY` to `backend/.env` locally or to the deployment service's environment variables. Never commit the key to the repository.
