@@ -1,20 +1,22 @@
 // Uses VITE_BACKEND_URL set in environment variables, falling back to local port 8000
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = (
+  import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
 
 /**
  * Parses HTTP error codes and returns structured error details.
  */
 function getErrorDetails(error) {
   const message = error instanceof Error ? error.message : String(error);
-  
-  if (message.includes('503')) {
+
+  if (/\b50[234]\b/.test(message)) {
     return {
       code: 'SERVICE_UNAVAILABLE',
       userMessage: 'The recommendation backend is warming up or busy. Please try again in a moment.'
     };
   }
 
-  if (message.includes('429')) {
+  if (/\b429\b/.test(message)) {
     return {
       code: 'RATE_LIMITED',
       userMessage: 'Too many requests right now. Please wait a bit before trying again.'
@@ -43,7 +45,11 @@ export async function getGameRecommendation(userMessage) {
     });
 
     if (!response.ok) {
-      throw new Error(`Backend response failed with status ${response.status}`);
+      const body = await response.json().catch(() => ({}));
+      const detail = typeof body.detail === "string" ? body.detail : "";
+      throw new Error(
+        `Backend response failed with status ${response.status}: ${detail}`
+      );
     }
 
     const data = await response.json();
