@@ -34,6 +34,8 @@ frontend/
 
 - Python 3.10 or newer
 - Node.js 18 or newer
+- vite
+- tailwind css
 - npm
 - A Groq API key
 
